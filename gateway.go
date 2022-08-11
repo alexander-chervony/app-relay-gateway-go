@@ -6,11 +6,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/chris-wood/ohttp-go"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
-
-	"github.com/chris-wood/ohttp-go"
+	"time"
 )
 
 type TargetFilter func(targetOrigin string) bool
@@ -132,6 +133,10 @@ func (s *gatewayResource) configHandler(w http.ResponseWriter, r *http.Request) 
 		s.httpError(w, http.StatusInternalServerError, "Config unavailable")
 		return
 	}
-
+	// Make expiration time even/random throughout interval 12-36h
+	// So the avg will be 24h but without spikes of the requests for the key renewal
+	rand.Seed(time.Now().UnixNano())
+	maxAge := 12*3600 + rand.Intn(24*3600)
+	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d, private", maxAge))
 	w.Write(config.Marshal())
 }
